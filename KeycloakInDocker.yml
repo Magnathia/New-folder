@@ -1,0 +1,46 @@
+---
+- name: Setup Keycloak in Docker
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Ensure Docker is installed
+      apt:
+        name: docker.io
+        state: present
+        update_cache: yes
+
+    - name: Ensure Docker is running
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Pull Keycloak Docker image
+      docker_image:
+        name: quay.io/keycloak/keycloak
+        tag: latest
+        source: pull
+
+    - name: Run Keycloak container
+      docker_container:
+        name: keycloak
+        image: quay.io/keycloak/keycloak:latest
+        state: started
+        ports:
+          - "8080:8080"
+        env:
+          KEYCLOAK_USER: admin
+          KEYCLOAK_PASSWORD: admin
+        command: start-dev
+
+    - name: Wait for Keycloak to be up
+      wait_for:
+        port: 8080
+        state: started
+        delay: 10
+        timeout: 300
+
+    - name: Display Keycloak URL
+      debug:
+        msg: "Keycloak is up and running at http://{{ ansible_host }}:8080"

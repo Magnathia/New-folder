@@ -1,0 +1,83 @@
+---
+    - name: Report MacOS STIG Compliance
+      hosts: all
+      become: yes
+      vars:
+        firewall_enabled: true
+        ssh_enabled: false
+        filevault_enabled: true
+        gatekeeper_enabled: true
+        sip_enabled: true
+        bluetooth_enabled: false
+    
+      tasks:
+        - name: Check if firewall is enabled
+          command: /usr/bin/defaults read /Library/Preferences/com.apple.alf globalstate
+          register: firewall_status
+        - name: Report firewall status
+          debug:
+            msg: "Firewall is {{ 'enabled' if firewall_status.stdout == '1' else 'disabled' }}"
+    
+        - name: Check if SSH is disabled
+          command: /usr/sbin/systemsetup -getremotelogin
+          register: ssh_status
+        - name: Report SSH status
+          debug:
+            msg: "SSH is {{ 'disabled' if 'Off' in ssh_status.stdout else 'enabled' }}"
+    
+        - name: Check if FileVault is enabled
+          command: /usr/bin/fdesetup status
+          register: filevault_status
+        - name: Report FileVault status
+          debug:
+            msg: "FileVault is {{ 'enabled' if 'FileVault is On' in filevault_status.stdout else 'disabled' }}"
+    
+        - name: Check if Gatekeeper is enabled
+          command: /usr/sbin/spctl --status
+          register: gatekeeper_status
+        - name: Report Gatekeeper status
+          debug:
+            msg: "Gatekeeper is {{ 'enabled' if 'assessments enabled' in gatekeeper_status.stdout else 'disabled' }}"
+    
+        - name: Check if System Integrity Protection is enabled
+          command: /usr/bin/csrutil status
+          register: sip_status
+        - name: Report SIP status
+          debug:
+            msg: "System Integrity Protection is {{ 'enabled' if 'enabled' in sip_status.stdout else 'disabled' }}"
+    
+        - name: Check if Bluetooth is disabled
+          command: /usr/bin/defaults read /Library/Preferences/com.apple.Bluetooth ControllerPowerState
+          register: bluetooth_status
+        - name: Report Bluetooth status
+          debug:
+            msg: "Bluetooth is {{ 'disabled' if bluetooth_status.stdout == '0' else 'enabled' }}"
+    
+        - name: Check password complexity
+          command: /usr/bin/pwpolicy -n /Local/Default -getglobalpolicy
+          register: password_policy
+        - name: Report password complexity
+          debug:
+            msg: "Password complexity policy: {{ password_policy.stdout }}"
+    
+        - name: Check if automatic updates are enabled
+          command: /usr/sbin/softwareupdate --schedule
+          register: updates_status
+        - name: Report automatic updates status
+          debug:
+            msg: "Automatic updates are {{ 'enabled' if 'on' in updates_status.stdout else 'disabled' }}"
+    
+        - name: Check if screen saver is enabled
+          command: /usr/bin/defaults -currentHost read com.apple.screensaver idleTime
+          register: screensaver_status
+        - name: Report screen saver status
+          debug:
+            msg: "Screen saver is {{ 'enabled' if screensaver_status.stdout != '0' else 'disabled' }}"
+    
+        - name: Check if audit logs are enabled
+          command: /usr/bin/sudo /usr/bin/audit -s
+          register: audit_status
+        - name: Report audit logs status
+          debug:
+            msg: "Audit logs are {{ 'enabled' if 'audit' in audit_status.stdout else 'disabled' }}"
+    

@@ -1,0 +1,49 @@
+---
+    - name: Ensure MacOS Device is STIG Compliant
+      hosts: all
+      become: yes
+      vars:
+        firewall_enabled: true
+        ssh_enabled: false
+        filevault_enabled: true
+        gatekeeper_enabled: true
+        sip_enabled: true
+        bluetooth_enabled: false
+    
+      tasks:
+        - name: Ensure firewall is enabled
+          command: /usr/bin/defaults write /Library/Preferences/com.apple.alf globalstate -int 1
+          when: firewall_enabled
+    
+        - name: Ensure SSH is disabled
+          command: /usr/sbin/systemsetup -setremotelogin off
+          when: not ssh_enabled
+    
+        - name: Ensure FileVault is enabled
+          command: /usr/bin/fdesetup enable
+          when: filevault_enabled
+    
+        - name: Ensure Gatekeeper is enabled
+          command: /usr/sbin/spctl --master-enable
+          when: gatekeeper_enabled
+    
+        - name: Ensure System Integrity Protection is enabled
+          command: /usr/bin/csrutil enable
+          when: sip_enabled
+    
+        - name: Disable Bluetooth if no approved device is connected
+          command: /usr/bin/defaults write /Library/Preferences/com.apple.Bluetooth ControllerPowerState -int 0
+          when: not bluetooth_enabled
+    
+        - name: Ensure password complexity
+          command: /usr/bin/pwpolicy -n /Local/Default -setglobalpolicy "minChars=12 requiresAlpha=1 requiresNumeric=1"
+    
+        - name: Ensure automatic updates are enabled
+          command: /usr/sbin/softwareupdate --schedule on
+    
+        - name: Ensure screen saver is enabled
+          command: /usr/bin/defaults -currentHost write com.apple.screensaver idleTime -int 300
+    
+        - name: Ensure audit logs are enabled
+          command: /usr/bin/sudo /usr/bin/audit -s
+    
